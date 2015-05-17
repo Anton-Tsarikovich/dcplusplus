@@ -1,6 +1,5 @@
 #include "testserver.h"
 
-
 TestServer::TestServer(int nPort, QWidget* pwgt /*=0*/) : QWidget(pwgt)
                                                     , m_nNextBlockSize(0)
 {
@@ -27,7 +26,7 @@ TestServer::TestServer(int nPort, QWidget* pwgt /*=0*/) : QWidget(pwgt)
     pvbxLayout->addWidget(m_ptxt);
     setLayout(pvbxLayout);
 }
-void TestServer::slotNewConnection()
+/*virtual*/ void TestServer::slotNewConnection()
 {
     QTcpSocket* pClientSocket = m_ptcpServer->nextPendingConnection();
     connect(pClientSocket, SIGNAL(disconnected()),

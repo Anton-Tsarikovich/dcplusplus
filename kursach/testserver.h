@@ -2,14 +2,14 @@
 #define TESTSERVER_H
 
 #include <QWidget>
-#include <QTcpServer>
-#include <QTextEdit>
-#include <QTcpSocket>
-#include <QMessageBox>
-#include <QVBoxLayout>
 #include <QTime>
+#include <QTcpServer>
+#include <QHostAddress>
+#include <QMessageBox>
+#include <QTextEdit>
 #include <QLabel>
-#include <QLineEdit>
+#include <QVBoxLayout>
+#include <QTcpSocket>
 
 class QTcpServer;
 class QTextEdit;
@@ -32,5 +32,4 @@ public slots:
     virtual void slotNewConnection();
             void slotReadClient   ();
 };
-
 #endif // TESTSERVER_H

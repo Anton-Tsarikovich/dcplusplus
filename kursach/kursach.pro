@@ -13,11 +13,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         client.cpp \
-    testserver.cpp \
-    workwithstring.cpp
+    workwithstring.cpp \
+    testserver.cpp
 
 HEADERS  += client.h \
-    testserver.h \
-    workwithstring.h
+    workwithstring.h \
+    testserver.h
 
 FORMS    += client.ui

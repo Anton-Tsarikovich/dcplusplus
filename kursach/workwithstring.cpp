@@ -3,94 +3,57 @@
 WorkWithString::WorkWithString()
 {
 }
-QString WorkWithString::findCommand(QString &commandString)
+
+QString WorkWithString::lockToKey(QString lock)
 {
-    int count = 0;
-    QString temp;
-    for(int i = 0; i < commandString.size(); i++)
-    {
-        if(commandString[i] == '$')
-        {
-            i++;
-            while(commandString[i] != ' ')
-            {
-                temp[count] = commandString[i];
-                i++;
-                count++;
-            }
-            qDebug()<<temp;
+    char* key = dcmakekey(lock.toAscii().data());
+    QString ret = QString::fromAscii(key);
+    delete(key);
+    return ret;
+}
+char* WorkWithString::dcmakekey(const char *lock)
+{
+    int i, len, offset;
+    char *buf, *key;
+    char save;
 
-            return (detectCommand(temp,commandString,i));
 
-        }
+     buf = new char[strlen(lock)];
+    save = 5;
+    len = 0;
+    for(i = 0; lock[i]; i++) {
+        buf[i] = lock[i] ^ save;
+        buf[i] = ((buf[i] & 0x0F) << 4) | ((buf[i] & 0xF0) >> 4);
+        save = lock[i];
+        if((i != 0) && reservedchar(buf[i]))
+            len += 10;
+        else
+            len++;
     }
-}
+    buf[0] ^= buf[i - 1];
+    if(reservedchar(buf[0]))
+        len += 10;
+    else
+        len++;
 
-QString WorkWithString::detectCommand(QString &command, QString &commandString, int position)
-{
-    int count = 0;
-    if(command == "Lock")
-    {
-        command.clear();
-        for(int i = position+1; commandString[i] != ' '; i++)
-        {
-            command[count] = commandString[i];
-            count++;
-            if(count == 16)
-            {
-                if(command == "EXTENDEDPROTOCOL")
-                {
-
-                    command[count+1] = commandString[i+1];
-                    if(command[count+1] == '_')
-                        i++;
-                    count = 0;
-                    command.clear();
-                }
-            }
-        }
-        return(validateMessage(command));
-
+    /* Step 2: Quote reserved characters */
+    key = (char*)malloc(len + 1);
+    offset = 0;
+    for(i = 0; lock[i] != 0; i++) {
+        if(reservedchar(buf[i]))
+            offset += sprintf(key + offset, "/%%DCN%03i%%/", buf[i]);
+        else
+            key[offset++] = buf[i];
     }
+    key[offset] = 0;
+    delete(buf);
+
+    /* Observe: The caller will have to free the memory */
+    return(key);
 }
-QString WorkWithString::validateMessage(QString &message)
+
+int WorkWithString::reservedchar(unsigned char c)
 {
-    //lock
-    int len = message.size();
-      char *key = new char[len+1];
-      char *lock = new char[len];
-      lock = message.toAscii().data();
-      int i;
-
-      for(i = 1; i < len; ++i)
-        key[i] = lock[i] ^ lock[i-1];
-      key[0] = lock[0] ^ lock[len-1] ^ lock[len-2] ^ 5;
-
-      for(i = 0; i < len; ++i)
-        key[i] = ((key[i]<<4) & 0xF0) | ((key[i]>>4) & 0x0F);
-
-      char *newkey = new char[len+100];
-      char *newkey_p = newkey;
-      for(i = 0; i < len; ++i)
-      {
-        switch(key[i])
-        {
-          case 0:
-          case 5:
-          case 36:
-          case 96:
-          case 124:
-          case 126:
-            sprintf(newkey_p, "/%%DCN%03d%%/", key[i]);
-            newkey_p += 10;
-            break;
-          default:
-            *newkey_p = key[i];
-            ++newkey_p;
-        }
-      }
-      *newkey_p = '\0';
-      message.clear();
-      message = newkey;
-      return message;
+    return((c == 0) || (c == 5) || (c == 124) || (c == 96) || (c == 126) || (c == 36));
 }
+
