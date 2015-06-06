@@ -14,10 +14,21 @@ TEMPLATE = app
 SOURCES += main.cpp\
         client.cpp \
     workwithstring.cpp \
-    testserver.cpp
+    connectionsettings.cpp \
+    readsettings.cpp \
+    user.cpp \
+    connectclient.cpp \
+    share.cpp
 
 HEADERS  += client.h \
     workwithstring.h \
-    testserver.h
+    connectionsettings.h \
+    user.h \
+    ReadSettings.h \
+    connectclient.h \
+    share.h
 
-FORMS    += client.ui
+FORMS    += client.ui \
+    connectionsettings.ui \
+    user.ui \
+    share.ui

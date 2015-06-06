@@ -6,6 +6,9 @@
 #include "QStandardItem"
 #include "connectionsettings.h"
 #include "user.h"
+#include "connecttoclient.h"
+#include "connectclient.h"
+#include "share.h"
 
 #include <QMainWindow>
 #include <QTcpSocket>
@@ -29,6 +32,7 @@ class Client : public QMainWindow
 public:
     explicit Client(const QString &nick, const QString &pass, const QString &mail,
                     const QString &server, const QString &port,QWidget *parent = 0);
+    void setTree(QTextStream*);
     ~Client();
     
 private:
@@ -48,9 +52,11 @@ private:
     QVector<User*> user;
     QMenu *contextMenu;
     QAction *sendMessageAction;
+    QString directory;
     void parseCommand(QString command);
     void getNickList();
-    void processChatCommand(QString nick, QString command, bool priv);
+    void processChatCommand(QString nick, QString command);
+
 
 private slots:
     void slotError(QAbstractSocket::SocketError);
@@ -60,7 +66,8 @@ private slots:
     void slotConnectionSettings();
     void slotTableClicked();
     void slotContextMenu(const QPoint&);
-
+    void slotConnectToSomeClient(int , int);
+    void goShare();
 };
 
 #endif // CLIENT_H

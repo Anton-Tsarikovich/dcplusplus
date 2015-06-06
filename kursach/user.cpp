@@ -6,16 +6,14 @@ User::User(QString myName, QString name, QTcpSocket *socket, QWidget *parent) :
     ui(new Ui::User)
 {
     ui->setupUi(this);
-    tcpSocket = socket;
     this->name = name;
     this->myName = myName;
     setWindowTitle(name);
-    clientSocket = new QTcpSocket(this);
+    tcpSocket = new QTcpSocket(this);
     connect(ui->cancelButton, SIGNAL(clicked()), this, SLOT(close()));
     connect(ui->sendButton, SIGNAL(clicked()), this, SLOT(sendMessage()));
     connect(ui->chatLine, SIGNAL(returnPressed()), this, SLOT(sendMessage()));
     socketStream.setDevice(tcpSocket);
-    clientStream.setDevice(clientSocket);
     ui->chatEdit->setReadOnly(true);
 }
 

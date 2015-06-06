@@ -27,8 +27,6 @@ public:
 private:
     Ui::User *ui;
     QTcpSocket *tcpSocket;
-    QTcpSocket *clientSocket;
-    QTextStream clientStream;
     QTextStream socketStream;
     QString name;
     QString myName;

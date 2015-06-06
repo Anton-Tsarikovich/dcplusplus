@@ -36,6 +36,7 @@ Client::Client(const QString &nick, const QString &pass, const QString &mail,
     ui->userTable->setSortingEnabled(true);
     ui->userTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->userTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->share, SIGNAL(triggered()),this,SLOT(goShare));
     connect(ui->userTable, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(slotContextMenu(const QPoint&)));
 
     sendMessageAction = new QAction("Send private message", this);
@@ -57,7 +58,7 @@ Client::Client(const QString &nick, const QString &pass, const QString &mail,
             , this
             , SLOT(slotError(QAbstractSocket::SocketError)));
     connect(ui->enterMessageList, SIGNAL(returnPressed()), this, SLOT(slotSendToServer()));
-    connect(ui->userTable, SIGNAL(cellDoubleClicked(int,int)),this,SLOT(slotTableClicked(int,int)));
+    connect(ui->userTable, SIGNAL(cellDoubleClicked(int,int)),this,SLOT(slotConnectToSomeClient(int,int)));
     socketStream.setDevice(mainSocket);
 
 }
@@ -120,22 +121,39 @@ void Client::parseCommand(QString command)
                 qDebug() << "Sending login info";
                 socketStream << "$Version 1,0091|";
                 socketStream << "$GetNickList|";
-                socketStream << "$MyINFO $ALL " << nickName <<" <AntoshkaDC++ V:0.673,M:A,H:0/1/0,S:1>$ $LAN(T3)0x32$" << email << "$0$|";
+                socketStream << "$MyINFO $ALL " << nickName <<" <AntoshkaDC++ V:0.673,M:P,H:0/1/0,S:1>$ $LAN(T3)0x32$" << email << "$0$|";
                 qDebug()<< "$MyINFO $ALL " << nickName <<" <AntoshkaDC++ V:0.673,M:P,H:0/1/0,S:1>$ $LAN(T3)0x32$" << email << "$0$|"; ;
                 socketStream.flush();
                 getNickList();
             }
         }
-        else if(words[0] == "$RevConnectToMe")
+        else if(words[0] == "$ConnectToMe")
         {
-            for(int i = 0; i < user.size(); i++)
+            QString host = words[2].section(':', 0, 0);
+            QString port = words[2].section(':', 1);
+            ConnectClient *client = new ConnectClient();
+            client->reConnect(host,port);
+            socketStream.flush();
+        }
+
+        else if(words[0] == "$MyINFO")
+        {
+            QString therest = command.section(' ', 2);
+            QString nick = therest.split(' ')[0];
+            QString others = therest.section(nick + " ", 1);
+            QStringList otherList = others.split('$');
+
+            for(int i = 0; i < ui->userTable->currentRow(); i++)
             {
-                if(user[i]->getName() == words[1])
+                if(ui->userTable->item(i,0)->text() == nick)
                 {
-                    user[i]->requestConnect();
-                    break;
+                   ui->userTable->setItem(i,1,new QTableWidgetItem(otherList[0]));
+                   ui->userTable->setItem(i,2,new QTableWidgetItem(otherList[2]));
+                   ui->userTable->setItem(i,3,new QTableWidgetItem(otherList[3]));
+                   ui->userTable->setItem(i,4,new QTableWidgetItem(otherList[4]));
+                   break;
                 }
-            }
+          }
         }
         else if(words[0] == "$NickList")
         {
@@ -154,12 +172,11 @@ void Client::parseCommand(QString command)
         {
 
             QStringList operators = words[1].split("$$", QString::SkipEmptyParts);
-            qDebug() << "Op:";
-            for(int i = 0; i < operators.size(); i++)
+            ui->userTable->setRowCount(operators.size() + ui->userTable->rowCount());
+            for(int i = ui->userTable->rowCount() - operators.size(), j = 0; i < ui->userTable->rowCount(); i++, j++)
             {
-                qDebug()<<i;
+               ui->userTable->setItem(i,0,new QTableWidgetItem(operators[j]));
             }
-
         }
         else if (words[0].startsWith("$GetPass"))
         {
@@ -197,10 +214,10 @@ void Client::parseCommand(QString command)
     }
     else if (command.startsWith("<"))
         {
-            processChatCommand("", command, false);
+            processChatCommand("", command);
         }
 }
-void Client::processChatCommand(QString nick, QString command, bool priv)
+void Client::processChatCommand(QString nick, QString command)
 {
     QString message;
 
@@ -208,19 +225,9 @@ void Client::processChatCommand(QString nick, QString command, bool priv)
     if (regExp.exactMatch(command))
     {
         nick = regExp.cap(1);
-
         message = decodeChatMessage(regExp.cap(3));
         ui->chatView->append(message);
     }
-    else
-    {
-        // probably from the Hub
-        message = command;
-        priv = false;
-    }
-
-    qDebug() << "Got" << (priv ? "private" : "") << "message from" << nick << ":" << message;
-
 }
 
 void Client::getNickList()
@@ -246,7 +253,7 @@ void Client::slotError(QAbstractSocket::SocketError err)
 }
 void Client::slotSendToServer()
 {
-    socketStream << "<antoshka> "<<ui->enterMessageList->text()<<"|";
+    socketStream << "<" << nickName << "> "<<ui->enterMessageList->text()<<"|";
     ui->enterMessageList->setText("");
     socketStream.flush();
 }
@@ -263,11 +270,33 @@ void Client::slotConnectionSettings()
 void Client::slotTableClicked()
 {
     int i = ui->userTable->currentRow();
-    user.at(i)->show();
+    for(int j = 0; j < user.size(); j++)
+    {
+        if(user.at(j)->getName() == ui->userTable->item(i,0)->text())
+        {
+
+             user.at(j)->show();
+             socketStream.flush();
+             break;
+        }
+    }
+}
+void Client::slotConnectToSomeClient(int i, int j)
+{
+    qDebug()<<ui->userTable->item(i,j)->text()<<"\n"<<i<<" "<<j;
+
+
+    socketStream << "$RevConnectToMe " << nickName << " " << ui->userTable->item(i,j)->text() << "|";
     socketStream.flush();
 }
 
 void Client::slotContextMenu(const QPoint &pos)
 {
     contextMenu->exec(ui->userTable->mapToGlobal(pos));
+}
+
+void Client::goShare()
+{
+
+
 }
